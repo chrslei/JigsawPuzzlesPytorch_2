@@ -1,4 +1,5 @@
 import argparse
+import datetime
 import time
 
 import torch
@@ -54,7 +55,7 @@ def get_args():
     parser.add_argument('-b', '--batch_size', type=int, default=32, dest='batch_size')
     parser.add_argument('-l', '--lr', type=float, default=1, dest='lr')
     parser.add_argument('-n', '--exp_name', type=str, default='exp', dest='exp_name')
-    parser.add_argument('-e', '--epochs', type=int, default=100, dest='epochs')
+    parser.add_argument('-e', '--epochs', type=int, default=1, dest='epochs')
     parser.add_argument('-s', '--seed', type=int, default=1, dest='seed')
 
     return parser.parse_args()
@@ -133,9 +134,11 @@ def train(train_loader, test_loader, model, optimizer, epochs, device, writer):
 if __name__ == '__main__':
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(torch.cuda.is_available())
+    print("using device: ",device)
     args = get_args()
     imgs_dir = 'ILSVRC2012_img_train_t3'
-    log_path = 'log/'
+    log_path = 'log/' +  datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     train_folds = ''
     val_folds = ''
 
