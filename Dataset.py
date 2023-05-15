@@ -28,8 +28,8 @@ class FoldDataset(Dataset):
             img = cv2.imread(img_path)
         else:
             img = cv2.imread(img_path, 0)
-
-        label = random.randint(0, 999)
+#hier die Klassen?
+        label = random.randint(0, 99)
 
         img = cv2.resize(img, (225, 225), cv2.INTER_LINEAR)
         # C * H * W

@@ -11,8 +11,9 @@ import torch.nn as nn
 from Dataset import FoldDataset
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader
-from JigsawNet import JigsawNet
+#from JigsawNet import JigsawNet
 from tqdm import tqdm
+from JigsawNetAlexNet import JigsawNet
 
 # Define the seed globally
 seed = 1
@@ -170,7 +171,7 @@ if __name__ == '__main__':
     all_files = os.listdir(imgs_dir)
 
     train_set = FoldDataset(imgs_dir, all_files[:200], permutations, in_channels=1)
-    test_set = FoldDataset(imgs_dir, all_files[201:220], permutations, in_channels=1)
+    test_set = FoldDataset(imgs_dir, all_files[:200], permutations, in_channels=1)
 
     train_loader = DataLoader(train_set, batch_size=args.batch_size, num_workers=8, pin_memory=True, shuffle=True,
                               worker_init_fn=_init_fn)
@@ -178,6 +179,7 @@ if __name__ == '__main__':
                              worker_init_fn=_init_fn)
 
     # ---- model ----
+    #model = JigsawNet(1, 1000)
     model = JigsawNet(1, 1000)
     model.apply(weight_init)
     optimizer = torch.optim.Adam(model.parameters(), args.lr, weight_decay=1e-4)
