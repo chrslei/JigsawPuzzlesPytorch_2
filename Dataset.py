@@ -7,6 +7,9 @@ import matplotlib.pyplot as plt
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 
+#import select_permutations
+
+
 #ERSTELLT u.a. die JIGSAW-Puzzles
 class FoldDataset(Dataset):
 
@@ -44,14 +47,14 @@ class FoldDataset(Dataset):
                 clip = img[:, i * 75: (i + 1) * 75, j * 75: (j + 1) * 75]
                 randomx = random.randint(0, 10)
                 randomy = random.randint(0, 10)
-                clip = clip[:, randomx: randomx+64, randomy:randomy+64]
+                clip = clip[:, randomx: randomx + 64, randomy:randomy + 64]
 
                 imgclips.append(clip)
 
         imgclips = [imgclips[item] for item in self.permutations[label]]
         imgclips = np.array(imgclips)
 
-        return img, torch.from_numpy(imgclips) / 255.0, torch.tensor(label)
+        return img, torch.from_numpy(imgclips) / 255.0, torch.tensor([label], dtype=torch.long)
 
 
 if __name__ == '__main__':

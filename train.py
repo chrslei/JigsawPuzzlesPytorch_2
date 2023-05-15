@@ -18,6 +18,7 @@ from tqdm import tqdm
 # Define the seed globally
 seed = 1
 
+
 def weight_init(m):
     if isinstance(m, nn.Linear):
         nn.init.xavier_normal_(m.weight)
@@ -28,9 +29,11 @@ def weight_init(m):
         nn.init.constant_(m.weight, 1)
         nn.init.constant_(m.bias, 0)
 
+
 # _init_fn now uses the global seed
 def _init_fn(worker_id):
     np.random.seed(int(seed))
+
 
 def save_checkpoint(net, path, global_step, accuracy=None, info=''):
     try:
@@ -41,7 +44,7 @@ def save_checkpoint(net, path, global_step, accuracy=None, info=''):
 
     if accuracy:
         checkpoint_name = f'CP_%d_%.4f%s.pth' % (global_step, accuracy, info)
-    else :
+    else:
         checkpoint_name = f'CP_{global_step}{info}.pth'
     torch.save(net.state_dict(),
                os.path.join(path, checkpoint_name))
@@ -50,15 +53,15 @@ def save_checkpoint(net, path, global_step, accuracy=None, info=''):
 
 
 def get_args():
-
     parser = argparse.ArgumentParser()
-    parser.add_argument('-b', '--batch_size', type=int, default=32, dest='batch_size')
+    parser.add_argument('-b', '--batch_size', type=int, default=16, dest='batch_size')
     parser.add_argument('-l', '--lr', type=float, default=1, dest='lr')
     parser.add_argument('-n', '--exp_name', type=str, default='exp', dest='exp_name')
-    parser.add_argument('-e', '--epochs', type=int, default=1, dest='epochs')
+    parser.add_argument('-e', '--epochs', type=int, default=10, dest='epochs')
     parser.add_argument('-s', '--seed', type=int, default=1, dest='seed')
 
     return parser.parse_args()
+
 
 def evaluate(model, test_loader, device):
     model.eval()
@@ -67,10 +70,11 @@ def evaluate(model, test_loader, device):
     for batch in test_loader:
         _, clips, labels = batch
         clips = clips.to(device)
-        labels = labels.to(device, dtype=torch.long).squeeze() # B * 1
+        labels = labels.view(-1)  # Reshape labels to be 1D if it has more dimensions
+        labels = labels.to(device, dtype=torch.long)
 
         # ---- forward ----
-        pred = model(clips) # B * 1000
+        pred = model(clips)  # B * 1000
 
         pred_label = torch.argmax(torch.softmax(pred, dim=1), dim=1).long()
 
@@ -78,7 +82,7 @@ def evaluate(model, test_loader, device):
         all += labels.size(0)
     model.train()
 
-    return p/all
+    return p / all
 
 
 def train(train_loader, test_loader, model, optimizer, epochs, device, writer):
@@ -89,17 +93,24 @@ def train(train_loader, test_loader, model, optimizer, epochs, device, writer):
     criterion = nn.CrossEntropyLoss()
 
     # ---- training ----
-    for epoch in range(1, epochs+1):
-        with tqdm(total=len(train_loader), desc=f'epoch[{epoch}/{epochs+1}]:') as bar:
-            for batch in train_loader:
+    for epoch in range(1, epochs + 1):
+        with tqdm(total=len(train_loader), desc=f'epoch[{epoch}/{epochs + 1}]:') as bar:
+            train_correct = 0  # Counter for correct predictions in training data
+            train_total = 0  # Counter for total training examples
+            test_correct = 0  # Counter for correct predictions in test data
+            test_total = 0  # Counter for total test examples
 
+            for batch in train_loader:
                 # ---- data prepare ----
                 _, clips, labels = batch
                 clips = clips.to(device)
                 labels = labels.to(device, dtype=torch.long)
 
+                # ---- Modify labels tensor ----
+                labels = labels.squeeze()  # Remove extra dimensions
+
                 # ---- forward ----
-                preds = model(clips) # B * 1000
+                preds = model(clips)
 
                 # ---- loss ----
                 loss = criterion(preds, labels)
@@ -109,6 +120,11 @@ def train(train_loader, test_loader, model, optimizer, epochs, device, writer):
                 loss.backward()
                 optimizer.step()
                 total_step += 1
+
+                # Count correct predictions in training data
+                _, predicted = torch.max(preds.data, 1)
+                train_correct += (predicted == labels).sum().item()
+                train_total += labels.size(0)
 
                 # lr_ = args.lr * max(1.0 - total_step / (len(train_loader) * epochs), 1e-7) ** 0.9
                 # for param_group in optimizer.param_groups:
@@ -120,25 +136,45 @@ def train(train_loader, test_loader, model, optimizer, epochs, device, writer):
                 bar.update(1)
 
             # ---- validation ----
-            accuracy = evaluate(model, test_loader, device)
+            for batch in test_loader:
+                _, clips, labels = batch
+                clips = clips.to(device)
+                labels = labels.to(device, dtype=torch.long)
 
-            writer.add_scalar('eval/ac', accuracy, total_step)
+                # ---- Modify labels tensor ----
+                labels = labels.squeeze()  # Remove extra dimensions
+
+                preds = model(clips)
+                _, predicted = torch.max(preds.data, 1)
+                test_correct += (predicted == labels).sum().item()
+                test_total += labels.size(0)
+
+            # Calculate accuracies
+            train_accuracy = 100 * train_correct / train_total
+            test_accuracy = 100 * test_correct / test_total
+
+            writer.add_scalar('eval/ac_train', train_accuracy, total_step)
+            writer.add_scalar('eval/ac_test', test_accuracy, total_step)
             writer.add_scalar('info/lr', optimizer.param_groups[0]['lr'], total_step)
+
+            # Print accuracy and number of correctly guessed images
             print(f"""
-                performance {accuracy}
+                Train Accuracy: {train_accuracy:.2f}%   Correctly Guessed (Train): {train_correct}/{train_total}
+                Test Accuracy: {test_accuracy:.2f}%    Correctly Guessed (Test): {test_correct}/{test_total}
             """)
 
-    print('training finish')
-    return accuracy
+    print('Training finished')
+    return test_accuracy
+
 
 if __name__ == '__main__':
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(torch.cuda.is_available())
-    print("using device: ",device)
+    print("using device: ", device)
     args = get_args()
     imgs_dir = 'ILSVRC2012_img_train_t3'
-    log_path = 'log/' +  datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    log_path = 'log/' + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     train_folds = ''
     val_folds = ''
 
@@ -156,8 +192,10 @@ if __name__ == '__main__':
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
 
+
     def _init_fn(worker_id):
         np.random.seed(int(seed))
+
 
     # ---- log & dataset ----
     if not os.path.exists(os.path.join(log_path, args.exp_name)):
@@ -167,13 +205,12 @@ if __name__ == '__main__':
         shutil.rmtree(os.path.join(log_path, args.exp_name, 'log'))
     writer = SummaryWriter(os.path.join(log_path, args.exp_name, 'log'))
 
-
     permutations = np.load('permutations.npy').tolist()
 
     all_files = os.listdir(imgs_dir)
 
-    train_set = FoldDataset(imgs_dir, all_files[:200], permutations, in_channels=1)
-    test_set = FoldDataset(imgs_dir, all_files[201:220], permutations, in_channels=1)
+    train_set = FoldDataset(imgs_dir, all_files[:100], permutations, in_channels=1)
+    test_set = FoldDataset(imgs_dir, all_files[101:121], permutations, in_channels=1)
 
     train_loader = DataLoader(train_set, batch_size=args.batch_size, num_workers=8, pin_memory=True, shuffle=True,
                               worker_init_fn=_init_fn)
@@ -191,13 +228,12 @@ if __name__ == '__main__':
             training start! 
             train set num: {len(train_set)} 
             val set num: {len(test_set)}
-            
+
             ''')
 
     ac = train(train_loader, test_loader, model, optimizer, epochs, device, writer)
 
     save_checkpoint(model, os.path.join(log_path, args.exp_name, 'checkpoints'), 0, ac)
-
 
 
 
