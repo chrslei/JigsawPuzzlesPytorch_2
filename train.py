@@ -1,4 +1,6 @@
 import argparse
+import time
+
 import torch
 import os
 import numpy as np
@@ -12,18 +14,22 @@ from torch.utils.data import DataLoader
 from JigsawNet import JigsawNet
 from tqdm import tqdm
 
+# Define the seed globally
+seed = 1
 
 def weight_init(m):
     if isinstance(m, nn.Linear):
         nn.init.xavier_normal_(m.weight)
         nn.init.constant_(m.bias, 0)
-    # 也可以判断是否为conv2d，使用相应的初始化方式
     elif isinstance(m, nn.Conv2d):
         nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-     # 是否为批归一化层
     elif isinstance(m, nn.BatchNorm2d):
         nn.init.constant_(m.weight, 1)
         nn.init.constant_(m.bias, 0)
+
+# _init_fn now uses the global seed
+def _init_fn(worker_id):
+    np.random.seed(int(seed))
 
 def save_checkpoint(net, path, global_step, accuracy=None, info=''):
     try:
@@ -46,7 +52,7 @@ def get_args():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-b', '--batch_size', type=int, default=32, dest='batch_size')
-    parser.add_argument('-l', '--lr', type=float, default=1e-4, dest='lr')
+    parser.add_argument('-l', '--lr', type=float, default=1, dest='lr')
     parser.add_argument('-n', '--exp_name', type=str, default='exp', dest='exp_name')
     parser.add_argument('-e', '--epochs', type=int, default=100, dest='epochs')
     parser.add_argument('-s', '--seed', type=int, default=1, dest='seed')
@@ -126,10 +132,9 @@ def train(train_loader, test_loader, model, optimizer, epochs, device, writer):
 
 if __name__ == '__main__':
 
-    # ---- init ----
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     args = get_args()
-    imgs_dir = ''
+    imgs_dir = 'ILSVRC2012_img_train_t3'
     log_path = 'log/'
     train_folds = ''
     val_folds = ''
@@ -139,8 +144,6 @@ if __name__ == '__main__':
     except:
         pass
 
-    # ---- random seed ----
-    seed = args.seed
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)  # if you are using multi-GPU.
@@ -161,17 +164,18 @@ if __name__ == '__main__':
         shutil.rmtree(os.path.join(log_path, args.exp_name, 'log'))
     writer = SummaryWriter(os.path.join(log_path, args.exp_name, 'log'))
 
-    csv = pd.read_csv(train_folds)
-    train_pool = [item[0] for item in csv.values]
-    csv = pd.read_csv(val_folds)
-    test_pool = [item[0] for item in csv.values]
+
     permutations = np.load('permutations.npy').tolist()
 
-    train_set = FoldDataset(imgs_dir, train_pool, permutations, in_channels=1)
-    test_set = FoldDataset(imgs_dir, test_pool, permutations, in_channels=1)
+    all_files = os.listdir(imgs_dir)
+
+    train_set = FoldDataset(imgs_dir, all_files[:200], permutations, in_channels=1)
+    test_set = FoldDataset(imgs_dir, all_files[201:220], permutations, in_channels=1)
+
     train_loader = DataLoader(train_set, batch_size=args.batch_size, num_workers=8, pin_memory=True, shuffle=True,
                               worker_init_fn=_init_fn)
-    test_loader = DataLoader(test_set, batch_size=args.batch_size, num_workers=8, pin_memory=True)
+    test_loader = DataLoader(test_set, batch_size=args.batch_size, num_workers=8, pin_memory=True,
+                             worker_init_fn=_init_fn)
 
     # ---- model ----
     model = JigsawNet(1, 1000)

@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 
-
+#ERSTELLT u.a. die JIGSAW-Puzzles
 class FoldDataset(Dataset):
 
     def __init__(self, imgs_dir, idx, permutations, in_channels=1):
