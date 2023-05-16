@@ -54,7 +54,7 @@ def save_checkpoint(net, path, global_step, accuracy=None, info=''):
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-b', '--batch_size', type=int, default=16, dest='batch_size')
+    parser.add_argument('-b', '--batch_size', type=int, default=8, dest='batch_size')
     parser.add_argument('-l', '--lr', type=float, default=1, dest='lr')
     parser.add_argument('-n', '--exp_name', type=str, default='exp', dest='exp_name')
     parser.add_argument('-e', '--epochs', type=int, default=10, dest='epochs')
@@ -209,12 +209,12 @@ if __name__ == '__main__':
 
     all_files = os.listdir(imgs_dir)
 
-    train_set = FoldDataset(imgs_dir, all_files[:100], permutations, in_channels=1)
-    test_set = FoldDataset(imgs_dir, all_files[101:121], permutations, in_channels=1)
+    train_set = FoldDataset(imgs_dir, all_files[:10000], permutations, in_channels=1)
+    test_set = FoldDataset(imgs_dir, all_files[10001:11001], permutations, in_channels=1)
 
-    train_loader = DataLoader(train_set, batch_size=args.batch_size, num_workers=8, pin_memory=True, shuffle=True,
+    train_loader = DataLoader(train_set, batch_size=args.batch_size, num_workers=6, pin_memory=True, shuffle=True,
                               worker_init_fn=_init_fn)
-    test_loader = DataLoader(test_set, batch_size=args.batch_size, num_workers=8, pin_memory=True,
+    test_loader = DataLoader(test_set, batch_size=args.batch_size, num_workers=6, pin_memory=True,
                              worker_init_fn=_init_fn)
 
     # ---- model ----
