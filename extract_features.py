@@ -9,11 +9,11 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model = JigsawNet(1, 1000)
+model = JigsawNet(1, 100)
 model.to(device)
-model.load_state_dict(torch.load('', map_location=device))
+model.load_state_dict(torch.load(r'C:\Users\furka\Desktop\KI 2.0\JigsawPuzzlesPytorch_2\log\20230519-130556_15epoch_16batch\exp\checkpoints\CP_0_0.1970.pth', map_location=device))
 model.eval()
-img_dir = ''
+img_dir = 'ILSVRC2012_img_train_t2'
 
 imgs_name = os.listdir(img_dir)
 random.shuffle(imgs_name)
@@ -53,4 +53,3 @@ np.save('features', np.array(features))
 #
 # plt.hist(distance, bins=40, facecolor="blue", edgecolor="black", alpha=0.7)
 # plt.show()
-

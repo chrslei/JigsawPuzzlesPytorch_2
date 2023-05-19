@@ -9,10 +9,10 @@ Algorithm 1 from
 https://arxiv.org/abs/1603.09246
 '''
 
-#permutations = 1000;
+#permutations = 100;
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-n', '--n_classes', type=int, default=1000, dest='n_classes')
+parser.add_argument('-n', '--n_classes', type=int, default=100, dest='n_classes')
 parser.add_argument('-p', '--save_path', type=str, default='./permutations.npy', dest='save_path')
 args = parser.parse_args()
 

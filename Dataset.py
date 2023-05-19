@@ -7,9 +7,6 @@ import matplotlib.pyplot as plt
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 
-#import select_permutations
-
-
 #ERSTELLT u.a. die JIGSAW-Puzzles
 class FoldDataset(Dataset):
 
@@ -32,7 +29,7 @@ class FoldDataset(Dataset):
         else:
             img = cv2.imread(img_path, 0)
 
-        label = random.randint(0, 999)
+        label = random.randint(0, 99)
 
         img = cv2.resize(img, (225, 225), cv2.INTER_LINEAR)
         # C * H * W
@@ -47,14 +44,14 @@ class FoldDataset(Dataset):
                 clip = img[:, i * 75: (i + 1) * 75, j * 75: (j + 1) * 75]
                 randomx = random.randint(0, 10)
                 randomy = random.randint(0, 10)
-                clip = clip[:, randomx: randomx + 64, randomy:randomy + 64]
+                clip = clip[:, randomx: randomx+64, randomy:randomy+64]
 
                 imgclips.append(clip)
 
         imgclips = [imgclips[item] for item in self.permutations[label]]
         imgclips = np.array(imgclips)
 
-        return img, torch.from_numpy(imgclips) / 255.0, torch.tensor([label], dtype=torch.long)
+        return img, torch.from_numpy(imgclips) / 255.0, torch.tensor(label)
 
 
 if __name__ == '__main__':
@@ -62,7 +59,7 @@ if __name__ == '__main__':
     path = ''
     permutations = np.load('permutations.npy').tolist()
     dataset = FoldDataset(path, os.listdir(path), permutations, in_channels=1)
-    dataloader = DataLoader(dataset, batch_size=1, num_workers=8, pin_memory=True, shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=16, num_workers=8, pin_memory=True, shuffle=True)
     for batch in dataloader:
         ii, inputs, labels = batch
         plt.figure()
@@ -85,7 +82,6 @@ if __name__ == '__main__':
         plt.imshow(ii.squeeze().numpy(), cmap='gray')
         plt.show()
         break
-
 
 
 
