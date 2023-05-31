@@ -1,27 +1,29 @@
-# [论文复现]Unsupervised Learning of Visual Representations by Solving Jigsaw Puzzles
+# Unsupervised Learning of Visual Representations by Solving Jigsaw Puzzles
 
-ECCV 2016: [Unsupervised Learning of Visual Representations by Solving Jigsaw Puzzles](https://arxiv.org/abs/1603.09246)
+basierend auf dem Code von https://github.com/YangZyyyy/JigsawPuzzlesPytorch
+python 3.11
 
-环境：
+##### Datensatz
 
-python 3.7
-
-pytorch 1.5.1
-
-
-
-##### 生成permulations
-
-python select_permulation.py
+http://vision.stanford.edu/aditya86/ImageNetDogs
 
 
 
-##### JigsawNet
+##### Erstellen der Permutationen
 
-利用VGG16替换了原文中的AlexNet
+select_permulation.py
 
 
 
-##### **训练**
+##### Erweiterungen
 
-python train.py
+AlexNet, VGG16 pretrained, ResNet101 pretrained
+
+
+##### Aufteilung des Datensatzes
+image_script.py
+
+
+##### Ausführen
+
+train.py
