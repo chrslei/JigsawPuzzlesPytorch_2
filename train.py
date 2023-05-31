@@ -1,6 +1,9 @@
 import argparse
 import datetime
 
+import time
+
+
 import torch
 import os
 import numpy as np
@@ -125,13 +128,15 @@ def train(train_loader, val_loader, model, optimizer, epochs, device, writer):
 if __name__ == '__main__':
     # ---- init ----
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(torch.cuda.is_available())
+    print("using device: ",device)
     args = get_args()
+    
     train_dir = 'ILSVRC2012_img_train_t3_split/train'
     val_dir = 'ILSVRC2012_img_train_t3_split/val'
     test_dir = 'ILSVRC2012_img_train_t3_split/test'
     log_path = 'log/' + datetime.datetime.now().strftime(
         "%Y%m%d-%H%M%S") + f"_{args.epochs}epoch_{args.batch_size}batch_{args.model}"
-
 
     try:
         os.makedirs(log_path)
