@@ -25,7 +25,9 @@ class Vgg16(nn.Module):
 
         # block 1 64 * 64
         self.conv1_1 = ConvBlock(in_channels, 64)
+        print(self.conv1_1)
         self.conv1_2 = ConvBlock(64, 64)
+        print(self.conv1_2)
         self.maxpool1 = nn.MaxPool2d(kernel_size=2, stride=2)
 
         # block 2 32 * 32
@@ -53,10 +55,14 @@ class Vgg16(nn.Module):
 
     def forward(self, x):
         x = self.conv1_1(x)
+        print(x)
         x = self.conv1_2(x)
+        print(x)
         x = self.maxpool1(x)
+        print(x)
 
         x = self.conv2_1(x)
+        print(x)
         x = self.conv2_2(x)
         x = self.maxpool2(x)
 
@@ -95,7 +101,9 @@ class JigsawNet(nn.Module):
         res = []
         for i in range(9):
             p = self.conv(x[:, i, ...])
+            print(p.shape)
             p = p.view(B, -1)
+            print(p.shape)
             p = self.fc6(p)
             res.append(p)
 
@@ -121,8 +129,8 @@ class JigsawNet(nn.Module):
 
 if __name__ == '__main__':
 
-    x = torch.rand(32, 9, 1, 64, 64)
-    model = JigsawNet(in_channels=1, n_classes=1000)
+    x = torch.rand(16, 9, 1, 64, 64)
+    model = JigsawNet(in_channels=1, n_classes=100)
 
     flops, params = profile(model, inputs=(x,))
     flops, params = clever_format([flops, params], "%.3f")
@@ -130,7 +138,6 @@ if __name__ == '__main__':
     print(flops, params)
 
     print(model(x).shape)
-
 
 
 

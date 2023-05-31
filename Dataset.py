@@ -28,7 +28,7 @@ class FoldDataset(Dataset):
             img = cv2.imread(img_path)
         else:
             img = cv2.imread(img_path, 0)
-#hier die Klassen?
+
         label = random.randint(0, 99)
 
         img = cv2.resize(img, (225, 225), cv2.INTER_LINEAR)
@@ -47,7 +47,7 @@ class FoldDataset(Dataset):
                 clip = clip[:, randomx: randomx+64, randomy:randomy+64]
 
                 imgclips.append(clip)
-
+        [2, 1, 3, 4, 5, 6, 7, 8, 9]
         imgclips = [imgclips[item] for item in self.permutations[label]]
         imgclips = np.array(imgclips)
 
@@ -59,7 +59,7 @@ if __name__ == '__main__':
     path = ''
     permutations = np.load('permutations.npy').tolist()
     dataset = FoldDataset(path, os.listdir(path), permutations, in_channels=1)
-    dataloader = DataLoader(dataset, batch_size=1, num_workers=8, pin_memory=True, shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=16, num_workers=10, pin_memory=True, shuffle=True)
     for batch in dataloader:
         ii, inputs, labels = batch
         plt.figure()
@@ -82,7 +82,6 @@ if __name__ == '__main__':
         plt.imshow(ii.squeeze().numpy(), cmap='gray')
         plt.show()
         break
-
 
 
 

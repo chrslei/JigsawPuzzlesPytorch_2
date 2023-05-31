@@ -79,8 +79,8 @@ class JigsawNet(nn.Module):
 
 
 if __name__ == '__main__':
-    x = torch.rand(32, 9, 1, 227, 227)  # Adjust input size to 227x227
-    model = JigsawNet(in_channels=1, n_classes=1000)
+    x = torch.rand(16, 9, 1, 227, 227)  # Adjust input size to 227x227
+    model = JigsawNet(in_channels=1, n_classes=100)
 
     flops, params = profile(model, inputs=(x,))
     flops, params = clever_format([flops, params], "%.3f")
