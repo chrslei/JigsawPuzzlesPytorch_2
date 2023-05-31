@@ -22,7 +22,7 @@ AlexNet, VGG16 pretrained, ResNet101 pretrained
 
 
 ##### Aufteilung des Datensatzes
-image_script.py
+create_folder
 
 
 ##### Ausführen

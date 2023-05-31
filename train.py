@@ -22,6 +22,7 @@ from JigsawNetResnet101Pretrained import JigsawNet
 from tqdm import tqdm
 
 
+# Funktion zur Initialisierung der Gewichte des Modells
 def weight_init(m):
     if isinstance(m, nn.Linear):
         nn.init.xavier_normal_(m.weight)
@@ -35,6 +36,7 @@ def weight_init(m):
         nn.init.constant_(m.bias, 0)
 
 
+# Funktion zum Speichern der Modell-Checkpoints
 def save_checkpoint(net, path, global_step, accuracy=None, info=''):
     try:
         os.makedirs(path)
@@ -52,6 +54,8 @@ def save_checkpoint(net, path, global_step, accuracy=None, info=''):
     print('Starting Test...')
     print('')
 
+
+# Funktion zum Sammeln der Kommandozeilenargumente
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-b', '--batch_size', type=int, default=16, dest='batch_size')
@@ -63,6 +67,7 @@ def get_args():
     return parser.parse_args()
 
 
+# Funktion zum Bewerten des Modells auf dem Validierungsdatensatz
 def evaluate(model, val_loader, device):
     model.eval()
     all = 0
@@ -80,6 +85,7 @@ def evaluate(model, val_loader, device):
     return p / all
 
 
+# Hauptfunktion zum Training des Modells
 def train(train_loader, val_loader, model, optimizer, epochs, device, writer):
     # ----prepare ----
     model.to(device)
@@ -103,9 +109,6 @@ def train(train_loader, val_loader, model, optimizer, epochs, device, writer):
                 loss.backward()
                 optimizer.step()
                 total_step += 1
-                # lr_ = args.lr * max(1.0 - total_step / (len(train_loader) * epochs), 1e-7) ** 0.9
-                # for param_group in optimizer.param_groups:
-                #     param_group['lr'] = lr_
                 # ---- log ----
                 writer.add_scalar('info/loss', loss, total_step)
                 bar.set_postfix(**{'loss (batch)': loss.item()})
@@ -121,28 +124,33 @@ def train(train_loader, val_loader, model, optimizer, epochs, device, writer):
 
     print('training finished')
 
-
     return accuracy
 
 
+# Hauptteil des Skripts
 if __name__ == '__main__':
     # ---- init ----
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(torch.cuda.is_available())
-    print("using device: ",device)
+    print("using device: ", device)
     args = get_args()
-    
+
+    # Bestimmen der Pfade zu den Datenverzeichnissen
     train_dir = 'ILSVRC2012_img_train_t3_split/train'
     val_dir = 'ILSVRC2012_img_train_t3_split/val'
     test_dir = 'ILSVRC2012_img_train_t3_split/test'
+
+    # Bestimmen des Pfades für die Logs
     log_path = 'log/' + datetime.datetime.now().strftime(
         "%Y%m%d-%H%M%S") + f"_{args.epochs}epoch_{args.batch_size}batch_{args.model}"
 
+    # Erstellen des Log-Verzeichnisses, falls es noch nicht existiert
     try:
         os.makedirs(log_path)
     except:
         pass
     # ---- random seed ----
+    # Setzen des Zufallsseeds für die Reproduzierbarkeit
     seed = args.seed
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
@@ -154,47 +162,57 @@ if __name__ == '__main__':
     torch.backends.cudnn.deterministic = True
 
 
+    # Setzen des Zufallsseeds für die Arbeiter des Dataloader
     def _init_fn(worker_id):
         np.random.seed(int(seed))
 
 
     # ---- log & dataset ----
+    # Erstellen der Verzeichnisse für das Logging und die Datensätze
     if not os.path.exists(os.path.join(log_path, args.exp_name)):
         os.makedirs(os.path.join(log_path, args.exp_name))
     if os.path.exists(os.path.join(log_path, args.exp_name, 'log')):
         shutil.rmtree(os.path.join(log_path, args.exp_name, 'log'))
     writer = SummaryWriter(os.path.join(log_path, args.exp_name, 'log'))
 
-# manually added
+    # Manuell hinzugefügt
+    # Erzeugen der Dateilisten für die Trainings-, Validierungs- und Testdaten
     train_pool = os.listdir(train_dir)
     val_pool = os.listdir(val_dir)
     test_pool = os.listdir(test_dir)
 
+    # Laden der Permutationen für das Jigsaw-Training
     permutations = np.load('permutations.npy').tolist()
+    # Erzeugen der Datensätze für das Training, die Validierung und das Testen
     # Bei ResNet101 ist in_channels = 3, ansonsten 1
     train_set = FoldDataset(train_dir, train_pool, permutations, in_channels=3)
     # Bei ResNet101 ist in_channels = 3, ansonsten 1
     val_set = FoldDataset(val_dir, val_pool, permutations, in_channels=3)
     # Bei ResNet101 ist in_channels = 3, ansonsten 1
     test_set = FoldDataset(test_dir, test_pool, permutations, in_channels=3)
+    # Erzeugen der Dataloader für das Training, die Validierung und das Testen
     train_loader = DataLoader(train_set, batch_size=args.batch_size, num_workers=10, pin_memory=True, shuffle=True)
     val_loader = DataLoader(val_set, batch_size=args.batch_size, num_workers=10, pin_memory=True)
     test_loader = DataLoader(test_set, batch_size=args.batch_size, num_workers=10, pin_memory=True)
     # ---- model ----
 
-    #VGG 16 & AlexNet
-    #model = JigsawNet(1, 100)
+    # VGG 16 & AlexNet
+    # model = JigsawNet(1, 100)
 
-    #AlexNetPretrained
-    #model = JigsawNet(100)
+    # AlexNetPretrained
+    # model = JigsawNet(100)
 
-    #ResNet
+    # Erstellen des Modells
+    # ResNet
     model = JigsawNet(3, 100)
 
+    # Initialisieren des Modells mit bestimmten Gewichten
     model.apply(weight_init)
+    # Erstellen des Optimizers
     optimizer = torch.optim.Adam(model.parameters(), args.lr, weight_decay=1e-4)
+    # Festlegen der Anzahl der Epochen
     epochs = args.epochs
-    # train
+    # Beginn des Trainings
     print(f'''
             training start! 
             train set num: {len(train_set)} 
@@ -203,11 +221,14 @@ if __name__ == '__main__':
 
             ''')
     ac = train(train_loader, val_loader, model, optimizer, epochs, device, writer)
+    # Speichern des Modells nach dem Training
     save_checkpoint(model, os.path.join(log_path, args.exp_name, 'checkpoints'), 0, ac)
 
     ### TESTING ###
+    # Auswertung des Modells auf den Testdaten
     test_accuracy = evaluate(model, test_loader, device)
     print(f"""Test Accuracy: {test_accuracy * 100:.2f}%""")
     print(f"""{int(test_accuracy * len(test_set))} / {len(test_set)} correct""")
 
+    # Protokollierung der Testgenauigkeit
     writer.add_scalar('test/ac', test_accuracy)
