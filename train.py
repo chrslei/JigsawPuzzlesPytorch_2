@@ -166,8 +166,11 @@ if __name__ == '__main__':
     test_pool = os.listdir(test_dir)
 
     permutations = np.load('permutations.npy').tolist()
+    # Bei ResNet101 ist in_channels = 3, ansonsten 1
     train_set = FoldDataset(train_dir, train_pool, permutations, in_channels=3)
+    # Bei ResNet101 ist in_channels = 3, ansonsten 1
     val_set = FoldDataset(val_dir, val_pool, permutations, in_channels=3)
+    # Bei ResNet101 ist in_channels = 3, ansonsten 1
     test_set = FoldDataset(test_dir, test_pool, permutations, in_channels=3)
     train_loader = DataLoader(train_set, batch_size=args.batch_size, num_workers=10, pin_memory=True, shuffle=True)
     val_loader = DataLoader(val_set, batch_size=args.batch_size, num_workers=10, pin_memory=True)
